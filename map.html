@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <script src="https://telegram.org/js/telegram-widget.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://hammerjs.github.io/dist/hammer.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.7.3/lottie.min.js"></script>
+    <link rel="preload" href="https://d5d3-213-209-148-2.ngrok-free.app/static/emojibest_com_telegram-animoji.gif"
+          as="image">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <script src="main.js" defer></script>
+    <title>Карта</title>
+    <style type="text/css">
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-size: 20px;
+        }
+
+        #container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            transition: transform 0.3s ease;
+            overflow-y: hidden;
+        }
+
+        #map {
+            flex: 1;
+            transition: opacity 0.3s;
+        }
+
+        #map.hidden {
+            opacity: 0;
+        }
+/* 
+        #inputWrapper {
+            position: absolute;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 25%;
+            padding: 10px;
+            background-color: #ffffff;
+            border-top: 1px solid #ccc;
+            border-radius: 20px;
+            z-index: 1000;
+            box-sizing: border-box;
+            transition: transform 0.3s ease, height 0.3s ease;
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1);
+            overflow: auto;
+        } */
+
+        #inputWrapper.focused {
+            bottom: 50vh;
+        }
+
+        #inputWrapper.expanded {
+            height: 100%;
+            transform: translateY(0);
+        }
+
+        #spacer {
+            transition: height 0.3s ease;
+        }
+
+/*         .inputField, button {
+            margin-bottom: 10px;
+            padding: 15px;
+            width: 100%;
+            font-size: 1rem;
+            border: 0.1px solid #ccc;
+            border-radius: 10px;
+            box-sizing: border-box;
+            box-shadow: rgba(17, 17, 26, 0.1) 0px 4px 16px, rgba(17, 17, 26, 0.1) 0px 8px 24px, rgba(17, 17, 26, 0.1) 0px 16px 56px;
+
+
+        }
+
+        button {
+            border: none;
+            background-color: #008CBA;
+            color: white;
+            cursor: pointer;
+        } */
+
+        #extraOptions {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            padding: 10px;
+        }
+
+        #inputWrapper.expanded #extraOptions {
+            display: flex;
+        }
+
+        .item {
+            width: 100%;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 20px;
+            /*border: 1px solid rgba(10, 8, 8, 0.2);*/
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 17px;
+            box-sizing: border-box; /* добавлено */
+            /*margin-left: 10px; !* добавлено *!*/
+            margin-right: 20px; /* добавлено */
+            /*box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1);*/
+            box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+        }
+
+        .item img {
+            margin-right: 10px;
+        }
+
+        .label-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .arrow {
+            font-size: 20px; /* Или установите свой размер */
+        }
+
+        .label-container a {
+            margin-right: 10px;
+        }
+
+        .item textarea {
+            width: 50%;
+            margin-left: 10px;
+        }
+
+        .switch {
+            margin-left: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .inputField, button {
+                font-size: 1.2rem;
+            }
+        }
+
+        #commentModal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgb(0, 0, 0); /* Fallback color */
+            background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+            padding-top: 60px; /* Location of the box */
+            border-radius: 20px;
+
+        }
+
+        #modalContent {
+            background-color: #fefefe;
+            margin: 5% auto; /* 15% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* Could be more or less, depending on screen size */
+            border-radius: 20px;
+
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        a.commentLink {
+            width: 100%;
+            display: flex;
+            color: black;
+            text-decoration: none;
+        }
+
+        .commentPopup {
+            position: fixed;
+            width: 90%; /* или другой размер */
+            height: 200px; /* или другой размер */
+            background-color: #FFF;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transform-origin: top left;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            opacity: 0;
+            transform: scaleX(0) scaleY(0);
+        }
+
+        .commentPopup.open {
+            opacity: 1;
+            transform: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <div id="map"></div>
+    <div id="inputWrapper" style="display: none;">
+        <!-- ... ваши существующие элементы ... -->
+        <!-- <input id="startPointInput" type="text" class="inputField" placeholder="Начальный адрес"/> -->
+        <!-- <input id="endPointInput" type="text" class="inputField" placeholder="Конечный адрес"/> -->
+        <!--        <button onclick="buildRoute()">Построить маршрут</button>-->
+        <div id="extraOptions">
+            <div class="item">
+                <img id="sticker"
+                     src="https://66e1-213-209-148-2.ngrok-free.app/static/emojibest_com_telegram-animoji.gif"
+                     style="width: 45px; height: 45px;"/>
+                <div class="label-container">
+                    <a>Детское кресло:</a>
+                    <div class="switch">
+                        <input type="checkbox" id="childSeatSwitch">
+                        <span class="slider round"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="item">
+                <img id="sticker-2"
+                     src="https://66e1-213-209-148-2.ngrok-free.app/static/emojibest_com_telegram-animoji-2.gif"
+                     style="width: 45px; height: 45px;"/>
+                <a href="#" id="commentLink" class="commentLink">
+                    <div class="label-container" style="width: 100%;">
+                        Комментарий:
+                        <div class="arrow">&gt;</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <!--            <div class="item">-->
+        <!--                <textarea id="commentInput" class="inputField" placeholder="Ваш комментарий"></textarea>-->
+        <!--            </div>-->
+    </div>
+
+    
+</div>
+
+<form action="" class="form" id="inputWrapper">
+    <label class="form__label" id="begin">
+      <input type="text" class="form__input" placeholder="Начальный адрес" id="startPointInput">
+      <span class="anim-line"></span>
+      <button class="btn form__btn" type="button">
+        <img src="/img/arrow.svg" alt="голубая стрелка вправо">
+      </button>
+    </label>
+    <label class="form__label" id="finish">
+      <input  type="text" class="form__input" placeholder="Конечный адрес" id="endPointInput">
+      <span class="anim-line"></span>
+      <button class="btn form__btn" type="button" data-btn="next-step">
+        <img src="/img/arrow.svg" alt="голубая стрелка вправо">
+      </button>
+    </label>
+  </form>
+
+  <div class="modal" id="modal-one">
+    <div class="modal__container">
+      <img class="gif" src="https://media4.giphy.com/media/l0IybQ6l8nfKjxQv6/200.webp?cid=82a1493bxvuzrpm2xum3msuohn1vgr4rs3o0n7jf9nbjukbo&ep=v1_gifs_trending&rid=200.webp&ct=g" alt="">
+      <div class="content">
+        Lorem ipsum, dolor sit amet consectetur adipisicing elit. Blanditiis eos eligendi voluptatibus.
+      </div>
+      <button class="btn" type="button" data-modal="next-modal">
+        <img src="/img/arrow.svg" alt="голубая стрелка вправо">
+      </button>
+    </div>
+  </div>
+  <div class="modal" id="modal-two">
+    <div class="modal__container">
+      <img class="gif" src="https://media0.giphy.com/media/l0K4kWJir91VEoa1W/giphy.webp?cid=82a1493bxjjl1tnk3u1vw5kn4s1tu5ofh3uohf14j8vsd17h&ep=v1_gifs_trending&rid=giphy.webp&ct=g" alt="">
+      <div class="content">
+        Lorem ipsum, dolor sit amet consectetur adipisicing elit. Blanditiis eos eligendi voluptatibus.
+      </div>
+      <button class="btn" type="button" >
+        <img src="/img/arrow.svg" alt="голубая стрелка вправо">
+      </button>
+    </div>
+  </div>
+
+<!-- The Modal -->
+<div id="commentModal">
+    <div id="modalContent">
+        <span class="close">&times;</span>
+        <textarea id="commentInputModal" class="inputField" placeholder="Ваш комментарий"></textarea>
+        <button onclick="closeModal()">Готово</button>
+    </div>
+</div>
+<!-- оставшийся код -->
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/ScrollMagic/2.0.7/ScrollMagic.min.js"></script>
+<script src="https://api-maps.yandex.ru/2.1/?apikey=957bdd10-fbf9-40ad-93d7-14be0f4df583&lang=ru_RU"
+        type="text/javascript"></script>
+
+<script type="text/javascript">
+    window.onload = function () {
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.expand();
+        }
+    };
+
+    document.body.addEventListener('touchmove', function (event) {
+        event.preventDefault();
+    }, {passive: false});
+
+    lottie.loadAnimation({
+        container: document.getElementById('sticker'), // the html element that you want to animate
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        path: 'https://66e1-213-209-148-2.ngrok-free.app/static/emojibest_com_telegram-animoji.gif' // the path to the animation json
+    });
+
+
+</script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/ScrollMagic/2.0.7/ScrollMagic.min.js"></script>
+
+<!--<script src="https://api-maps.yandex.ru/2.1/?apikey=957bdd10-fbf9-40ad-93d7-14be0f4df583&lang=ru_RU"-->
+<!--        type="text/javascript"></script>-->
+
+<script type="text/javascript">
+
+    document.addEventListener('DOMContentLoaded', (event) => {
+        var hammer = new Hammer(document.getElementById('inputWrapper'), {
+            recognizers: [
+                [Hammer.Swipe, {direction: Hammer.DIRECTION_VERTICAL}]
+            ]
+        });
+
+        var isExpanded = false;
+
+        hammer.on('swipeup', function () {
+            if (!isExpanded) {
+                // document.getElementById('inputWrapper').style.transform = 'translateY(-50%)';
+                document.getElementById('inputWrapper').style.height = '98%';
+                document.getElementById('inputWrapper').classList.add('expanded');
+                /* Adjusted */
+                /* Adjusted */
+                isExpanded = true;
+            }
+        });
+
+        hammer.on('swipedown', function () {
+            if (isExpanded) {
+                // document.getElementById('inputWrapper').style.transform = 'translateY(0)';
+                document.getElementById('inputWrapper').style.height = '25%';
+                document.getElementById('inputWrapper').classList.remove('expanded');
+                isExpanded = false;
+            }
+        });
+    });
+
+
+    ymaps.ready(init);
+    var myMap;
+    var startPlacemark, endPlacemark;
+
+    var activeInput = null;  // переменная для хранения активного поля ввода
+
+    function init() {
+        document.getElementById('startPointInput').addEventListener('focus', function () {
+            activeInput = 'start';
+        });
+        document.getElementById('endPointInput').addEventListener('focus', function () {
+            activeInput = 'end';
+        });
+        myMap = new ymaps.Map("map", {
+            center: [55.76, 37.64],
+            zoom: 10,
+            controls: []
+        });
+
+        document.getElementById('startPointInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();  // Предотвращаем отправку формы
+                setStartPoint();
+                e.target.blur();  // Скрываем клавиатуру
+            }
+        });
+
+        document.getElementById('endPointInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();  // Предотвращаем отправку формы
+                setEndPoint();
+                e.target.blur();  // Скрываем клавиатуру
+            }
+        });
+
+
+        myMap.events.add('click', function (e) {
+            if (activeInput) {
+                var coords = e.get('coords');
+                if (activeInput === 'start') {
+                    updateInputAndPlacemark('startPointInput', startPlacemark, coords);
+                } else if (activeInput === 'end') {
+                    updateInputAndPlacemark('endPointInput', endPlacemark, coords);
+                }
+            }
+        });
+    }
+
+    function updateInputAndPlacemark(inputId, placemark, coords) {
+        ymaps.geocode(coords).then(function (res) {
+            var address = res.geoObjects.get(0).properties.get('text');
+            document.getElementById(inputId).value = address;
+            if (placemark) {
+                myMap.geoObjects.remove(placemark);  // удаление старой метки с карты
+            }
+            placemark = createPlacemark(coords);  // создание новой метки
+            myMap.geoObjects.add(placemark);  // добавление новой метки на карту
+            if (inputId === 'startPointInput') {
+                startPlacemark = placemark;  // обновление глобальной переменной startPlacemark
+            } else if (inputId === 'endPointInput') {
+                endPlacemark = placemark;  // обновление глобальной переменной endPlacemark
+            }
+        });
+    }
+
+    function setStartPoint() {
+        var address = document.getElementById('startPointInput').value;
+        ymaps.geocode(address).then(function (res) {
+            var coords = res.geoObjects.get(0).geometry.getCoordinates();
+            if (startPlacemark) {
+                startPlacemark.geometry.setCoordinates(coords);
+            } else {
+                startPlacemark = createPlacemark(coords);
+                myMap.geoObjects.add(startPlacemark);
+            }
+            myMap.setCenter(coords, 14);  // Устанавливаем центр карты на адрес с уровнем масштабирования 14
+        });
+    }
+
+    function setEndPoint() {
+        var address = document.getElementById('endPointInput').value;
+        ymaps.geocode(address).then(function (res) {
+            var coords = res.geoObjects.get(0).geometry.getCoordinates();
+            if (endPlacemark) {
+                endPlacemark.geometry.setCoordinates(coords);
+            } else {
+                endPlacemark = createPlacemark(coords);
+                myMap.geoObjects.add(endPlacemark);
+            }
+            myMap.setCenter(coords, 14);  // Устанавливаем центр карты на адрес с уровнем масштабирования 14
+        });
+    }
+
+    function handleFocus() {
+        document.getElementById('inputWrapper').classList.add('focused');
+    }
+
+    function handleBlur() {
+        document.getElementById('inputWrapper').classList.remove('focused');
+    }
+
+    var initialWindowHeight = window.innerHeight;  // запоминаем начальную высоту окна
+
+    function handleResize() {
+        var keyboardHeight = initialWindowHeight - window.innerHeight;
+        document.getElementById('inputWrapper').style.bottom = keyboardHeight + 'px';
+    }
+
+    window.addEventListener('resize', handleResize);
+
+    document.getElementById('startPointInput').addEventListener('focus', handleFocus);
+    document.getElementById('startPointInput').addEventListener('blur', handleBlur);
+    document.getElementById('endPointInput').addEventListener('focus', handleFocus);
+    document.getElementById('endPointInput').addEventListener('blur', handleBlur);
+
+
+    function createPlacemark(coords) {
+        return new ymaps.Placemark(coords);
+    }
+
+    function buildRoute() {
+        if (startPlacemark && endPlacemark) {
+            var start = startPlacemark.geometry.getCoordinates();
+            var end = endPlacemark.geometry.getCoordinates();
+            ymaps.route([start, end], {
+                mapStateAutoApply: true
+            }).then(function (route) {
+                myMap.geoObjects.add(route);
+
+                // Получение данных о маршруте
+                var length = route.properties.get('RouterRouteMetaData').length;
+                var duration = route.properties.get('RouterRouteMetaData').time;
+
+                // Конвертация данных для более удобного отображения
+                var lengthKm = (length / 1000).toFixed(1);  // Длина маршрута в километрах
+                var durationMin = (duration / 60).toFixed(0);  // Время в пути в минутах
+
+                // Обновление информации о маршруте в пользовательском интерфейсе
+                document.getElementById('routeInfo').innerHTML =
+                    'Длина маршрута: ' + lengthKm + ' км<br>' +
+                    'Время в пути: ' + durationMin + ' мин';
+
+            }, function (error) {
+                alert("Возникла ошибка: " + error.message);
+            });
+        } else {
+            alert('Пожалуйста, введите начальный и конечный адреса');
+        }
+    }
+</script>
+
+</body>
+</html>
